@@ -12,7 +12,7 @@ from lerobot.utils.visualization_utils import _init_rerun
 NUM_EPISODES = 3
 FPS = 30
 EPISODE_TIME_SEC = 30
-RESET_TIME_SEC = 10
+RESET_TIME_SEC = 5
 TASK_DESCRIPTION = "My task description"
 
 # Create the robot and teleoperator configurations

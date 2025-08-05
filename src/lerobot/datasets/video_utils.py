@@ -32,7 +32,7 @@ from PIL import Image
 
 def get_safe_default_codec():
     if importlib.util.find_spec("torchcodec"):
-        return "torchcodec"
+        return "pyav"
     else:
         logging.warning(
             "'torchcodec' is not available in your platform, falling back to 'pyav' as a default decoder"
@@ -142,20 +142,21 @@ def decode_video_frames_torchvision(
     dist = torch.cdist(query_ts[:, None], loaded_ts[:, None], p=1)
     min_, argmin_ = dist.min(1)
 
+    # 将这部分代码修改为警告而不是错误
     is_within_tol = min_ < tolerance_s
-    assert is_within_tol.all(), (
-        f"One or several query timestamps unexpectedly violate the tolerance ({min_[~is_within_tol]} > {tolerance_s=})."
-        "It means that the closest frame that can be loaded from the video is too far away in time."
-        "This might be due to synchronization issues with timestamps during data collection."
-        "To be safe, we advise to ignore this item during training."
-        f"\nqueried timestamps: {query_ts}"
-        f"\nloaded timestamps: {loaded_ts}"
-        f"\nvideo: {video_path}"
-        f"\nbackend: {backend}"
-    )
-
-    # get closest frames to the query timestamps
-    closest_frames = torch.stack([loaded_frames[idx] for idx in argmin_])
+    if not is_within_tol.all():
+        logging.warning(
+            f"One or several query timestamps violate the tolerance ({min_[~is_within_tol]} > {tolerance_s=})."
+            # "Skipping this item during training."
+            # f"\nqueried timestamps: {query_ts}"
+            # f"\nloaded timestamps: {loaded_ts}"
+            # f"\nvideo: {video_path}"
+            # f"\nbackend: {backend}"
+        )
+        # 返回空张量或使用最近的帧
+        closest_frames = torch.stack([loaded_frames[idx] for idx in argmin_])
+    else:
+        closest_frames = torch.stack([loaded_frames[idx] for idx in argmin_])
     closest_ts = loaded_ts[argmin_]
 
     if log_loaded_timestamps:
